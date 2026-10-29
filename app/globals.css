@@ -1,0 +1,138 @@
+@import 'tailwindcss';
+@import 'tw-animate-css';
+@import 'shadcn/tailwind.css';
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --font-sans: var(--font-inter-tight), 'Helvetica Neue', Arial, sans-serif;
+  --font-serif: var(--font-cormorant), 'Cormorant Garamond', Georgia, serif;
+
+  --color-ivory: var(--inv-ivory);
+  --color-paper: var(--inv-paper);
+  --color-espresso: var(--inv-espresso);
+  --color-sage: var(--inv-sage);
+  --color-champagne: var(--inv-champagne);
+
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-border: var(--border);
+  --color-destructive: var(--destructive);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: var(--muted);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
+  --color-foreground: var(--foreground);
+  --color-background: var(--background);
+  --radius-sm: 0px;
+  --radius-md: 0px;
+  --radius-lg: var(--radius);
+  --radius-xl: var(--radius);
+}
+
+:root {
+  color-scheme: light;
+  /* Defaults; overridden at runtime from the invitation config. */
+  --inv-ivory: #f5f1ea;
+  --inv-paper: #eee8de;
+  --inv-espresso: #382f2b;
+  --inv-sage: #5e6b4e;
+  --inv-champagne: #d7c9b3;
+
+  --background: var(--inv-ivory);
+  --foreground: var(--inv-espresso);
+  --card: var(--inv-paper);
+  --card-foreground: var(--inv-espresso);
+  --popover: var(--inv-ivory);
+  --popover-foreground: var(--inv-espresso);
+  --primary: var(--inv-espresso);
+  --primary-foreground: var(--inv-ivory);
+  --secondary: var(--inv-champagne);
+  --secondary-foreground: var(--inv-espresso);
+  --muted: var(--inv-paper);
+  --muted-foreground: color-mix(in oklab, var(--inv-espresso) 74%, var(--inv-ivory));
+  --accent: var(--inv-champagne);
+  --accent-foreground: var(--inv-espresso);
+  --destructive: #8c3a2b;
+  --border: var(--inv-champagne);
+  --input: var(--inv-sage);
+  --ring: var(--inv-espresso);
+  --radius: 0px;
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  html {
+    -webkit-text-size-adjust: 100%;
+    scroll-behavior: smooth;
+  }
+  body {
+    @apply bg-background text-foreground font-sans;
+    font-feature-settings: 'kern', 'liga';
+    text-rendering: optimizeLegibility;
+  }
+  ::selection {
+    background: var(--inv-champagne);
+    color: var(--inv-espresso);
+  }
+  :focus-visible {
+    outline: 1px solid var(--inv-espresso);
+    outline-offset: 4px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+}
+
+/* Uncoated cotton paper: a barely-there fibre grain. */
+.paper-grain {
+  position: relative;
+  isolation: isolate;
+}
+.paper-grain::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  opacity: 0.35;
+  mix-blend-mode: multiply;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.22 0 0 0 0 0.18 0 0 0 0 0.16 0 0 0 0.09 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+.eyebrow {
+  font-family: var(--font-sans);
+  font-size: 0.75rem;
+  line-height: 1rem;
+  font-weight: 500;
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
+}
+
+@keyframes scroll-cue {
+  0% {
+    transform: translateY(-100%);
+  }
+  60%,
+  100% {
+    transform: translateY(200%);
+  }
+}
+
+.hairline {
+  height: 1px;
+  background: var(--inv-champagne);
+}
