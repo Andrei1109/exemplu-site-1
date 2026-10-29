@@ -53,19 +53,19 @@ export function Hero({ config, guestName }: { config: InvitationConfig; guestNam
 
   return (
     <header className="paper-grain relative flex min-h-svh flex-col lg:flex-row">
-      <div className="flex min-h-svh flex-1 flex-col px-6 pb-8 pt-6 sm:px-10 sm:pt-8">
+      <div className="flex min-h-svh flex-1 flex-col px-6 pb-6 pt-5 sm:px-10 sm:pb-8 sm:pt-8">
         {guestName && (
           <motion.p className="eyebrow text-muted-foreground" {...fade(0.2)}>
             {`Pentru ${guestName}`}
           </motion.p>
         )}
 
-        <div className="flex flex-1 flex-col items-center justify-center gap-10 py-14 text-center sm:gap-12">
+        <div className="flex flex-1 flex-col items-center justify-center gap-5 py-4 text-center sm:gap-12 sm:py-14">
           <ArchPhoto
             photo={heroPhoto}
             sizes="(min-width: 1024px) 1px, (min-width: 640px) 20rem, 78vw"
             delay={0.3}
-            className="aspect-[3/4] w-[min(78vw,20rem)] sm:w-80 lg:hidden"
+            className="aspect-[3/4] h-[38svh] max-w-[78vw] sm:h-auto sm:w-80 lg:hidden"
           />
           <Monogram
             initials={couple.initials}
@@ -74,14 +74,14 @@ export function Hero({ config, guestName }: { config: InvitationConfig; guestNam
           />
 
           <h1 className="font-serif font-light leading-[0.92] tracking-[-0.01em]">
-            <LineReveal immediate delay={0.7} className="text-[clamp(3.4rem,15vw,8.5rem)] lg:text-[clamp(5rem,8vw,8.5rem)]">
+            <LineReveal immediate delay={0.7} className="text-[clamp(2.75rem,13vw,8.5rem)] lg:text-[clamp(5rem,8vw,8.5rem)]">
               {couple.first}
             </LineReveal>
-            <LineReveal immediate delay={0.9} className="my-2 text-[clamp(2.4rem,8vw,3.6rem)] italic text-sage sm:my-3">
+            <LineReveal immediate delay={0.9} className="my-1 text-[clamp(1.75rem,6vw,3.6rem)] italic text-sage sm:my-3">
               <span className="sr-only"> și </span>
               <span aria-hidden="true">&amp;</span>
             </LineReveal>
-            <LineReveal immediate delay={1.05} className="text-[clamp(3.4rem,15vw,8.5rem)] lg:text-[clamp(5rem,8vw,8.5rem)]">
+            <LineReveal immediate delay={1.05} className="text-[clamp(2.75rem,13vw,8.5rem)] lg:text-[clamp(5rem,8vw,8.5rem)]">
               {couple.second}
             </LineReveal>
           </h1>
