@@ -50,6 +50,23 @@ export function validateRSVP(input: RSVPInput, maxCompanions: number): RSVPError
   return errors
 }
 
+type GuestMatch = { id: string; fullName: string }
+
+const normalize = (value: string) =>
+  value.normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim().toLowerCase()
+
+/** Looks up an existing guest by name so a repeated answer updates it instead of creating a new one. */
+async function findGuestId(endpoint: string, name: string): Promise<string | undefined> {
+  try {
+    const response = await fetch(`${endpoint}/search?q=${encodeURIComponent(name)}`)
+    if (!response.ok) return undefined
+    const data: { results?: GuestMatch[] } = await response.json()
+    return data.results?.find((guest) => normalize(guest.fullName) === normalize(name))?.id
+  } catch {
+    return undefined
+  }
+}
+
 /**
  * Integration point for Palfi Events. When no endpoint is configured the
  * invitation runs in demo mode and nothing leaves the browser.
@@ -60,13 +77,27 @@ export async function submitRSVP(payload: RSVPPayload, endpoint?: string): Promi
     return { status: 'demo' }
   }
 
+  const base = endpoint.replace(/\/+$/, '')
+  const attending = payload.attendance === 'yes'
+
   try {
-    const response = await fetch(endpoint, {
+    const guestId = await findGuestId(base, payload.name)
+    const response = await fetch(`${base}/rsvp`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload),
+      body: JSON.stringify({
+        guestId,
+        fullName: payload.name,
+        status: attending ? 'CONFIRMED' : 'DECLINED',
+        attendingCount: attending ? 1 + payload.companions : 0,
+        kidsCount: 0,
+        dietaryRestrictions: payload.dietary,
+        songRequests: [],
+        messageToCuple: payload.message,
+      }),
     })
-    if (!response.ok) {
+    const data: { success?: boolean } | null = await response.json().catch(() => null)
+    if (!response.ok || !data?.success) {
       return { status: 'error', message: 'Răspunsul nu a putut fi trimis. Vă rugăm să încercați din nou.' }
     }
     return { status: 'saved' }

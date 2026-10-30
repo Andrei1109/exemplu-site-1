@@ -58,7 +58,7 @@ export type InvitationConfig = {
   timeline: TimelineItem[]
   rsvp: {
     deadline: string
-    /** Absolute or relative URL. When empty, the form runs in demo mode. */
+    /** Base URL of the Palfi Events public RSVP API. When empty, the form runs in demo mode. */
     endpoint?: string
     maxCompanions: number
   }
@@ -180,7 +180,8 @@ export const invitationConfig: InvitationConfig = {
   ],
   rsvp: {
     deadline: '2027-05-15T23:59:59+03:00',
-    endpoint: process.env.NEXT_PUBLIC_RSVP_ENDPOINT || undefined,
+    endpoint:
+      process.env.NEXT_PUBLIC_RSVP_ENDPOINT || 'http://localhost:3050/api/public/rsvp/1e20536ecd64f54e7932',
     maxCompanions: 3,
   },
   closing: {
