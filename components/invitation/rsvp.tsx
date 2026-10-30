@@ -4,9 +4,14 @@ import { Minus, Plus } from 'lucide-react'
 import { useId, useRef, useState, type FormEvent } from 'react'
 import { formatDate, type InvitationConfig } from '@/lib/invitation-config'
 import {
+  COMPANION_MENUS,
+  GUEST_MENUS,
   RSVP_LIMITS,
+  isValidCompanionName,
   submitRSVP,
   validateRSVP,
+  type Companion,
+  type MenuChoice,
   type RSVPErrors,
   type RSVPInput,
   type RSVPResult,
@@ -20,7 +25,7 @@ type RsvpProps = {
   deadlinePassed: boolean
 }
 
-const FIELD_ORDER: (keyof RSVPInput)[] = ['name', 'attendance', 'companions', 'dietary', 'message']
+const FIELD_ORDER: (keyof RSVPInput)[] = ['name', 'attendance', 'menu', 'companions', 'dietary', 'message']
 
 export function Rsvp({ config, guestName, deadlinePassed }: RsvpProps) {
   const deadline = formatDate(config.rsvp.deadline, config, { day: 'numeric', month: 'long', year: 'numeric' })
@@ -77,7 +82,8 @@ function RsvpForm({ config, guestName }: { config: InvitationConfig; guestName?:
   const [values, setValues] = useState<RSVPInput>({
     name: guestName ?? '',
     attendance: '',
-    companions: 0,
+    menu: 'Standard',
+    companions: [],
     dietary: '',
     message: '',
   })
@@ -94,6 +100,19 @@ function RsvpForm({ config, guestName }: { config: InvitationConfig; guestName?:
     if (errors[key]) setErrors((prev) => ({ ...prev, [key]: undefined }))
   }
 
+  function setCompanionCount(count: number) {
+    const next = values.companions.slice(0, count)
+    while (next.length < count) next.push({ name: '', menu: 'Standard' })
+    update('companions', next)
+  }
+
+  function updateCompanion(index: number, patch: Partial<Companion>) {
+    update(
+      'companions',
+      values.companions.map((companion, i) => (i === index ? { ...companion, ...patch } : companion)),
+    )
+  }
+
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     if (pending) return
@@ -102,7 +121,11 @@ function RsvpForm({ config, guestName }: { config: InvitationConfig; guestName?:
     setErrors(nextErrors)
     const firstInvalid = FIELD_ORDER.find((key) => nextErrors[key])
     if (firstInvalid) {
-      formRef.current?.querySelector<HTMLElement>(`[data-field="${firstInvalid}"]`)?.focus()
+      const invalidCompanion =
+        firstInvalid === 'companions'
+          ? formRef.current?.querySelector<HTMLElement>('[data-companion][aria-invalid="true"]')
+          : null
+      ;(invalidCompanion ?? formRef.current?.querySelector<HTMLElement>(`[data-field="${firstInvalid}"]`))?.focus()
       return
     }
 
@@ -114,7 +137,8 @@ function RsvpForm({ config, guestName }: { config: InvitationConfig; guestName?:
         eventId: config.eventId,
         name: values.name.trim(),
         attendance,
-        companions: attendance === 'yes' ? values.companions : 0,
+        menu: values.menu,
+        companions: attendance === 'yes' ? values.companions : [],
         dietary: attendance === 'yes' ? values.dietary.trim() : '',
         message: values.message.trim(),
       },
@@ -241,7 +265,23 @@ function RsvpForm({ config, guestName }: { config: InvitationConfig; guestName?:
 
       {attending ? (
         <>
-          <fieldset className="flex flex-col gap-4" aria-describedby={`${fieldId('companions')}-hint`}>
+          <fieldset className="flex flex-col gap-4">
+            <legend className="mb-4 flex items-baseline gap-2">
+              <span className="eyebrow text-espresso">Meniul dumneavoastră</span>
+            </legend>
+            <MenuPicker
+              name={fieldId('menu')}
+              options={GUEST_MENUS}
+              value={values.menu}
+              onChange={(menu) => update('menu', menu)}
+              dataField="menu"
+            />
+          </fieldset>
+
+          <fieldset
+            className="flex flex-col gap-4"
+            aria-describedby={`${fieldId('companions')}-hint${errors.companions ? ` ${errorId('companions')}` : ''}`}
+          >
             <legend className="mb-4 flex items-baseline gap-2">
               <span className="eyebrow text-espresso">Însoțitori</span>
             </legend>
@@ -253,8 +293,8 @@ function RsvpForm({ config, guestName }: { config: InvitationConfig; guestName?:
                 <button
                   type="button"
                   data-field="companions"
-                  onClick={() => update('companions', Math.max(0, values.companions - 1))}
-                  disabled={values.companions <= 0}
+                  onClick={() => setCompanionCount(Math.max(0, values.companions.length - 1))}
+                  disabled={values.companions.length <= 0}
                   aria-label="Mai puțini însoțitori"
                   className="flex size-11 items-center justify-center text-espresso transition-opacity disabled:opacity-30"
                 >
@@ -265,12 +305,12 @@ function RsvpForm({ config, guestName }: { config: InvitationConfig; guestName?:
                   aria-label="Număr de însoțitori"
                   className="w-10 text-center font-serif text-3xl tabular-nums"
                 >
-                  {values.companions}
+                  {values.companions.length}
                 </output>
                 <button
                   type="button"
-                  onClick={() => update('companions', Math.min(maxCompanions, values.companions + 1))}
-                  disabled={values.companions >= maxCompanions}
+                  onClick={() => setCompanionCount(Math.min(maxCompanions, values.companions.length + 1))}
+                  disabled={values.companions.length >= maxCompanions}
                   aria-label="Mai mulți însoțitori"
                   className="flex size-11 items-center justify-center text-espresso transition-opacity disabled:opacity-30"
                 >
@@ -278,6 +318,35 @@ function RsvpForm({ config, guestName }: { config: InvitationConfig; guestName?:
                 </button>
               </div>
             </div>
+
+            {values.companions.map((companion, index) => {
+              const invalid = Boolean(errors.companions) && !isValidCompanionName(companion.name)
+              return (
+                <div key={index} className="flex flex-col gap-4 border-l border-champagne pl-4 pt-2">
+                  <label htmlFor={fieldId(`companion-${index}`)} className="eyebrow text-espresso">
+                    {`Însoțitor ${index + 1}`}
+                  </label>
+                  <input
+                    id={fieldId(`companion-${index}`)}
+                    data-companion
+                    type="text"
+                    placeholder="Nume și prenume"
+                    maxLength={RSVP_LIMITS.name}
+                    value={companion.name}
+                    onChange={(e) => updateCompanion(index, { name: e.target.value })}
+                    aria-invalid={invalid}
+                    className={inputClass(invalid)}
+                  />
+                  <MenuPicker
+                    name={fieldId(`companion-${index}-menu`)}
+                    label={`Meniu pentru însoțitorul ${index + 1}`}
+                    options={COMPANION_MENUS}
+                    value={companion.menu}
+                    onChange={(menu) => updateCompanion(index, { menu })}
+                  />
+                </div>
+              )
+            })}
             <ErrorText id={errorId('companions')} message={errors.companions} />
           </fieldset>
 
@@ -286,7 +355,7 @@ function RsvpForm({ config, guestName }: { config: InvitationConfig; guestName?:
             htmlFor={fieldId('dietary')}
             error={errors.dietary}
             errorId={errorId('dietary')}
-            hint="Opțional — de exemplu vegetarian, fără gluten sau alergii."
+            hint="Opțional — alergii sau alte restricții."
           >
             <input
               id={fieldId('dietary')}
@@ -342,6 +411,50 @@ function RsvpForm({ config, guestName }: { config: InvitationConfig; guestName?:
         </p>
       </div>
     </form>
+  )
+}
+
+function MenuPicker({
+  name,
+  label = 'Meniu',
+  options,
+  value,
+  onChange,
+  dataField,
+}: {
+  name: string
+  label?: string
+  options: MenuChoice[]
+  value: MenuChoice
+  onChange: (value: MenuChoice) => void
+  dataField?: string
+}) {
+  return (
+    <div role="radiogroup" aria-label={label} className="flex flex-wrap gap-2">
+      {options.map((option, i) => {
+        const checked = value === option
+        return (
+          <label
+            key={option}
+            className={cn(
+              'cursor-pointer border px-4 py-2 text-sm transition-colors has-[:focus-visible]:outline has-[:focus-visible]:outline-1 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-espresso',
+              checked ? 'border-espresso bg-espresso text-ivory' : 'border-champagne text-espresso hover:border-sage',
+            )}
+          >
+            <input
+              type="radio"
+              name={name}
+              value={option}
+              data-field={i === 0 ? dataField : undefined}
+              checked={checked}
+              onChange={() => onChange(option)}
+              className="sr-only"
+            />
+            {option}
+          </label>
+        )
+      })}
+    </div>
   )
 }
 

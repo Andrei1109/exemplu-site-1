@@ -1,9 +1,17 @@
 export type Attendance = 'yes' | 'no'
 
+export type MenuChoice = 'Standard' | 'Vegetarian' | 'Copil'
+
+export const GUEST_MENUS: MenuChoice[] = ['Standard', 'Vegetarian']
+export const COMPANION_MENUS: MenuChoice[] = ['Standard', 'Vegetarian', 'Copil']
+
+export type Companion = { name: string; menu: MenuChoice }
+
 export type RSVPInput = {
   name: string
   attendance: Attendance | ''
-  companions: number
+  menu: MenuChoice
+  companions: Companion[]
   dietary: string
   message: string
 }
@@ -22,6 +30,11 @@ export type RSVPResult =
 
 export const RSVP_LIMITS = { name: 80, dietary: 200, message: 500 } as const
 
+export function isValidCompanionName(name: string) {
+  const trimmed = name.trim()
+  return trimmed.length >= 2 && trimmed.length <= RSVP_LIMITS.name
+}
+
 export function validateRSVP(input: RSVPInput, maxCompanions: number): RSVPErrors {
   const errors: RSVPErrors = {}
   const name = input.name.trim()
@@ -34,8 +47,10 @@ export function validateRSVP(input: RSVPInput, maxCompanions: number): RSVPError
   }
 
   if (input.attendance === 'yes') {
-    if (!Number.isInteger(input.companions) || input.companions < 0 || input.companions > maxCompanions) {
+    if (input.companions.length > maxCompanions) {
       errors.companions = `Puteți fi însoțit de cel mult ${maxCompanions} persoane.`
+    } else if (input.companions.some((companion) => !isValidCompanionName(companion.name))) {
+      errors.companions = 'Vă rugăm să completați numele fiecărui însoțitor.'
     }
   }
 
@@ -79,6 +94,7 @@ export async function submitRSVP(payload: RSVPPayload, endpoint?: string): Promi
 
   const base = endpoint.replace(/\/+$/, '')
   const attending = payload.attendance === 'yes'
+  const companions = attending ? payload.companions : []
 
   try {
     const guestId = await findGuestId(base, payload.name)
@@ -89,16 +105,25 @@ export async function submitRSVP(payload: RSVPPayload, endpoint?: string): Promi
         guestId,
         fullName: payload.name,
         status: attending ? 'CONFIRMED' : 'DECLINED',
-        attendingCount: attending ? 1 + payload.companions : 0,
-        kidsCount: 0,
+        attendingCount: attending ? 1 + companions.length : 1,
+        mealChoice: attending ? payload.menu : undefined,
+        companions: companions.map((companion) => ({
+          name: companion.name.trim(),
+          // The API has no kids' menu: children get the standard menu and are counted in kidsCount.
+          mealChoice: companion.menu === 'Copil' ? 'Standard' : companion.menu,
+        })),
+        kidsCount: companions.filter((companion) => companion.menu === 'Copil').length,
         dietaryRestrictions: payload.dietary,
         songRequests: [],
         messageToCuple: payload.message,
       }),
     })
-    const data: { success?: boolean } | null = await response.json().catch(() => null)
+    const data: { success?: boolean; error?: string } | null = await response.json().catch(() => null)
     if (!response.ok || !data?.success) {
-      return { status: 'error', message: 'Răspunsul nu a putut fi trimis. Vă rugăm să încercați din nou.' }
+      return {
+        status: 'error',
+        message: data?.error ?? 'Răspunsul nu a putut fi trimis. Vă rugăm să încercați din nou.',
+      }
     }
     return { status: 'saved' }
   } catch {
